@@ -2,6 +2,9 @@ package com.example.erp.controller;
 
 import com.example.erp.model.User;
 import com.example.erp.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,17 +14,21 @@ import java.util.List;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "User Management", description = "APIs for managing users")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
 
     @Autowired
     UserRepository userRepository;
 
+    @Operation(summary = "Get all users", description = "Retrieve a list of all users. Requires USER permission.")
     @GetMapping
     @PreAuthorize("hasPermission('USER', 'CAN_VIEW_USER')")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+    @Operation(summary = "Get user by ID", description = "Retrieve a user by their ID. Requires USER permission.")
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission('USER', 'CAN_VIEW_USER')")
     public User getUserById(@PathVariable Long id) {
@@ -29,12 +36,14 @@ public class UserController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    @Operation(summary = "Create user", description = "Create a new user. Requires CREATE_USER permission.")
     @PostMapping
     @PreAuthorize("hasPermission('USER', 'CAN_CREATE_USER')")
     public User createUser(@RequestBody User user) {
         return userRepository.save(user);
     }
 
+    @Operation(summary = "Update user", description = "Update an existing user. Requires UPDATE_USER permission.")
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission('USER', 'CAN_UPDATE_USER')")
     public User updateUser(@PathVariable Long id, @RequestBody User userDetails) {
@@ -51,6 +60,7 @@ public class UserController {
         return userRepository.save(user);
     }
 
+    @Operation(summary = "Delete user", description = "Delete a user by ID. Requires DELETE_USER permission.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasPermission('USER', 'CAN_DELETE_USER')")
     public void deleteUser(@PathVariable Long id) {

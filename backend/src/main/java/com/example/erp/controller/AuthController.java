@@ -11,6 +11,12 @@ import com.example.erp.repository.RoleRepository;
 import com.example.erp.repository.UserRepository;
 import com.example.erp.security.JwtUtils;
 import com.example.erp.service.UserDetailsImpl;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +35,7 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Authentication management APIs")
 public class AuthController {
     @Autowired
     AuthenticationManager authenticationManager;
@@ -45,6 +52,11 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Operation(summary = "Authenticate user", description = "Authenticate user with username and password and return JWT token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponse.class)) }),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials", content = @Content) })
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
@@ -66,6 +78,11 @@ public class AuthController {
                 roles));
     }
 
+    @Operation(summary = "Register user", description = "Register a new user with username, email, password and roles")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User registered successfully", content = {
+                    @Content(mediaType = "application/json", schema = @Schema(implementation = MessageResponse.class)) }),
+            @ApiResponse(responseCode = "400", description = "Username or Email already in use", content = @Content) })
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
