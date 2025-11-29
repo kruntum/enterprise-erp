@@ -20,6 +20,7 @@ public class DataSeeder implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final MenuRepository menuRepository;
+    private final PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -27,6 +28,7 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("Starting data seeding...");
 
+        seedPermissions();
         seedRoles();
         seedAdminUser();
         seedDefaultMenus();
@@ -34,24 +36,83 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Data seeding completed successfully!");
     }
 
+    private void seedPermissions() {
+        if (permissionRepository.count() == 0) {
+            log.info("Seeding permissions...");
+
+            Permission canViewUser = new Permission();
+            canViewUser.setName("CAN_VIEW_USER");
+            canViewUser.setDescription("Can view users");
+
+            Permission canCreateUser = new Permission();
+            canCreateUser.setName("CAN_CREATE_USER");
+            canCreateUser.setDescription("Can create new users");
+
+            Permission canUpdateUser = new Permission();
+            canUpdateUser.setName("CAN_UPDATE_USER");
+            canUpdateUser.setDescription("Can update existing users");
+
+            Permission canDeleteUser = new Permission();
+            canDeleteUser.setName("CAN_DELETE_USER");
+            canDeleteUser.setDescription("Can delete users");
+
+            Permission canViewRole = new Permission();
+            canViewRole.setName("CAN_VIEW_ROLE");
+            canViewRole.setDescription("Can view roles");
+
+            permissionRepository.saveAll(Arrays.asList(
+                    canViewUser,
+                    canCreateUser,
+                    canUpdateUser,
+                    canDeleteUser,
+                    canViewRole));
+
+            log.info(
+                    "Permissions seeded: CAN_VIEW_USER, CAN_CREATE_USER, CAN_UPDATE_USER, CAN_DELETE_USER, CAN_VIEW_ROLE");
+        } else {
+            log.info("Permissions already exist, skipping permission seeding");
+        }
+    }
+
     private void seedRoles() {
         if (roleRepository.count() == 0) {
             log.info("Seeding roles...");
 
+            // Get permissions
+            Permission canViewUser = permissionRepository.findByName("CAN_VIEW_USER").orElse(null);
+            Permission canCreateUser = permissionRepository.findByName("CAN_CREATE_USER").orElse(null);
+            Permission canUpdateUser = permissionRepository.findByName("CAN_UPDATE_USER").orElse(null);
+            Permission canDeleteUser = permissionRepository.findByName("CAN_DELETE_USER").orElse(null);
+            Permission canViewRole = permissionRepository.findByName("CAN_VIEW_ROLE").orElse(null);
+
+            // ROLE_USER - can only view
             Role userRole = new Role();
-            userRole.setName(RoleName.ROLE_USER);
-            userRole.setPermissions(new HashSet<>());
+            userRole.setName("ROLE_USER");
+            userRole.setDescription("Standard user role");
+            userRole.setPermissions(new HashSet<>(Arrays.asList(canViewUser)));
 
+            // ROLE_HR - can view and manage users
             Role hrRole = new Role();
-            hrRole.setName(RoleName.ROLE_HR);
-            hrRole.setPermissions(new HashSet<>());
+            hrRole.setName("ROLE_HR");
+            hrRole.setDescription("Human Resources role");
+            hrRole.setPermissions(new HashSet<>(Arrays.asList(
+                    canViewUser,
+                    canCreateUser,
+                    canUpdateUser)));
 
+            // ROLE_ADMIN - has all permissions
             Role adminRole = new Role();
-            adminRole.setName(RoleName.ROLE_ADMIN);
-            adminRole.setPermissions(new HashSet<>());
+            adminRole.setName("ROLE_ADMIN");
+            adminRole.setDescription("Administrator role with full access");
+            adminRole.setPermissions(new HashSet<>(Arrays.asList(
+                    canViewUser,
+                    canCreateUser,
+                    canUpdateUser,
+                    canDeleteUser,
+                    canViewRole)));
 
             roleRepository.saveAll(Arrays.asList(userRole, hrRole, adminRole));
-            log.info("Roles seeded: ROLE_USER, ROLE_HR, ROLE_ADMIN");
+            log.info("Roles seeded with permissions: ROLE_USER, ROLE_HR, ROLE_ADMIN");
         } else {
             log.info("Roles already exist, skipping role seeding");
         }
@@ -61,7 +122,7 @@ public class DataSeeder implements CommandLineRunner {
         if (userRepository.findByUsername("admin").isEmpty()) {
             log.info("Seeding admin user...");
 
-            Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
+            Role adminRole = roleRepository.findByName("ROLE_ADMIN")
                     .orElseThrow(() -> new RuntimeException("Admin role not found"));
 
             User admin = new User();
@@ -93,28 +154,43 @@ public class DataSeeder implements CommandLineRunner {
             userManagement.setLabel("User Management");
             userManagement.setPath("/users");
             userManagement.setIcon("people");
-            userManagement.setPermissionRequired("CAN_MANAGE_USERS");
+            userManagement.setPermissionRequired("CAN_VIEW_USER");
             userManagement.setParentId(null);
             userManagement.setSortOrder(2);
 
-            Menu reports = new Menu();
-            reports.setLabel("Reports");
-            reports.setPath("/reports");
-            reports.setIcon("assessment");
-            reports.setPermissionRequired(null);
-            reports.setParentId(null);
-            reports.setSortOrder(3);
+            Menu roleManagement = new Menu();
+            roleManagement.setLabel("Role Management");
+            roleManagement.setPath("/roles");
+            roleManagement.setIcon("shield");
+            roleManagement.setPermissionRequired("ROLE_ADMIN");
+            roleManagement.setParentId(null);
+            roleManagement.setSortOrder(3);
 
-            Menu settings = new Menu();
-            settings.setLabel("Settings");
-            settings.setPath("/settings");
-            settings.setIcon("settings");
-            settings.setPermissionRequired("CAN_MANAGE_SETTINGS");
-            settings.setParentId(null);
-            settings.setSortOrder(4);
+            Menu permissionManagement = new Menu();
+            permissionManagement.setLabel("Permission Management");
+            permissionManagement.setPath("/permissions");
+            permissionManagement.setIcon("lock");
+            permissionManagement.setPermissionRequired("ROLE_ADMIN");
+            permissionManagement.setParentId(null);
+            permissionManagement.setSortOrder(4);
 
-            menuRepository.saveAll(Arrays.asList(dashboard, userManagement, reports, settings));
-            log.info("Default menus seeded: Dashboard, User Management, Reports, Settings");
+            Menu menuManagement = new Menu();
+            menuManagement.setLabel("Menu Management");
+            menuManagement.setPath("/menus");
+            menuManagement.setIcon("menu");
+            menuManagement.setPermissionRequired("ROLE_ADMIN");
+            menuManagement.setParentId(null);
+            menuManagement.setSortOrder(5);
+
+            menuRepository.saveAll(Arrays.asList(
+                    dashboard,
+                    userManagement,
+                    roleManagement,
+                    permissionManagement,
+                    menuManagement));
+
+            log.info(
+                    "Default menus seeded: Dashboard, User Management, Role Management, Permission Management, Menu Management");
         } else {
             log.info("Menus already exist, skipping menu seeding");
         }

@@ -40,7 +40,7 @@ public class UserDetailsImpl implements UserDetails {
 
         // Also add Roles as authorities if needed, or just rely on permissions
         user.getRoles().forEach(role -> {
-            authorities.add(new SimpleGrantedAuthority(role.getName().name()));
+            authorities.add(new SimpleGrantedAuthority(role.getName()));
         });
 
         return new UserDetailsImpl(

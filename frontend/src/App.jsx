@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
 import MenuManagement from './pages/MenuManagement';
+import PermissionManagement from './pages/PermissionManagement';
+import RoleManagement from './pages/RoleManagement';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -18,7 +20,9 @@ function App() {
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/users" element={<UserManagement />} />
+                        <Route path="/roles" element={<RoleManagement />} />
                         <Route path="/menus" element={<MenuManagement />} />
+                        <Route path="/permissions" element={<PermissionManagement />} />
                     </Route>
                 </Route>
             </Routes>

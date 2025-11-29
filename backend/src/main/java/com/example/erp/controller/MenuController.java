@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class MenuController {
 
     @Operation(summary = "Get menu by ID", description = "Retrieve a specific menu item by ID.")
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Menu getMenuById(@PathVariable Long id) {
         return menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found"));
@@ -39,12 +41,14 @@ public class MenuController {
 
     @Operation(summary = "Create menu", description = "Create a new menu item.")
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Menu createMenu(@RequestBody Menu menu) {
         return menuRepository.save(menu);
     }
 
     @Operation(summary = "Update menu", description = "Update an existing menu item.")
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Menu updateMenu(@PathVariable Long id, @RequestBody Menu menuDetails) {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found"));
@@ -61,6 +65,7 @@ public class MenuController {
 
     @Operation(summary = "Delete menu", description = "Delete a menu item by ID.")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteMenu(@PathVariable Long id) {
         menuRepository.deleteById(id);
     }
