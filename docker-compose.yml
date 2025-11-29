@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=erp_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: erp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    depends_on:
+      - database
+    restart: always
+
+  backend:
+    build: ./backend
+    container_name: erp-backend
+    ports:
+      - "8099:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/erp_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - database
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: erp-frontend
+    ports:
+      - "8098:80"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_data:
