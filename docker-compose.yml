@@ -29,7 +29,7 @@ services:
     build: ./backend
     container_name: erp-backend
     ports:
-      - "8099:8080"
+      - "8099:8099"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/erp_db
       - SPRING_DATASOURCE_USERNAME=postgres

@@ -1,6 +1,8 @@
 spring:
   application:
     name: enterprise-erp
+server:
+  port: 8099
   datasource:
     url: jdbc:postgresql://database:5432/erp_db
     username: postgres
