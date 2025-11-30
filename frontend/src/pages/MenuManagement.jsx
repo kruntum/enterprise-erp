@@ -78,7 +78,7 @@ const MenuManagement = () => {
                 path: menu.path,
                 icon: menu.icon || '',
                 permissionRequired: menu.permissionRequired || '',
-                parentId: menu.parentId || null,
+                parentId: menu.parentId || '', // Use empty string for select binding
                 sortOrder: menu.sortOrder
             });
         } else {
@@ -88,7 +88,7 @@ const MenuManagement = () => {
                 path: '',
                 icon: '',
                 permissionRequired: '',
-                parentId: null,
+                parentId: '', // Default to empty string
                 sortOrder: 0
             });
         }
@@ -105,9 +105,15 @@ const MenuManagement = () => {
         const loadingToast = toast.loading(editingMenu ? 'Updating menu...' : 'Creating menu...');
 
         try {
+            // Ensure parentId is null if empty string, 'null' string, or 0
+            let finalParentId = data.parentId;
+            if (finalParentId === '' || finalParentId === 'null' || finalParentId === 0) {
+                finalParentId = null;
+            }
+
             const payload = {
                 ...data,
-                parentId: data.parentId === '' || data.parentId === 'null' ? null : data.parentId
+                parentId: finalParentId
             };
 
             if (editingMenu) {

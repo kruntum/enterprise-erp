@@ -4,17 +4,7 @@ import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    Home,
-    Users,
-    Settings,
-    Menu as MenuIcon,
-    LogOut,
-    LayoutDashboard,
-    UserCog,
-    FileText,
-    BarChart3
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 
 const Sidebar = () => {
     const [menus, setMenus] = useState([]);
@@ -39,6 +29,19 @@ const Sidebar = () => {
         if (!menu.permissionRequired) return true;
         if (user?.roles?.includes('ROLE_ADMIN')) return true;
         return true;
+    };
+
+    const getIcon = (iconName) => {
+        if (!iconName) return LucideIcons.Menu;
+
+        // Convert kebab-case to PascalCase (e.g., 'user-pen' -> 'UserPen')
+        const pascalCaseName = iconName
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('');
+
+        // Return the icon component if it exists, otherwise default to Menu
+        return LucideIcons[pascalCaseName] || LucideIcons[iconName] || LucideIcons.Menu;
     };
 
     const renderMenuItem = (menu) => {
@@ -69,21 +72,6 @@ const Sidebar = () => {
         );
     };
 
-    const getIcon = (iconName) => {
-        switch (iconName) {
-            case 'home': return Home;
-            case 'dashboard': return LayoutDashboard;
-            case 'users': return Users;
-            case 'user-pen': return UserCog;
-            case 'people': return Users;
-            case 'menu': return MenuIcon;
-            case 'settings': return Settings;
-            case 'assessment': return BarChart3;
-            case 'reports': return FileText;
-            default: return MenuIcon;
-        }
-    }
-
     return (
         <div className="flex h-full w-56 flex-col border-r bg-card text-card-foreground">
             <div className="flex h-12 items-center px-3 border-b">
@@ -112,7 +100,7 @@ const Sidebar = () => {
                     className="w-full justify-start h-8 text-xs"
                     onClick={logout}
                 >
-                    <LogOut className="mr-2 h-3 w-3" />
+                    <LucideIcons.LogOut className="mr-2 h-3 w-3" />
                     Logout
                 </Button>
             </div>
