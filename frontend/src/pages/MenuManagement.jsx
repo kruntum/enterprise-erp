@@ -1,12 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { X, Edit2, Trash2, Plus } from 'lucide-react';
+import { toast } from "sonner";
+import { Edit2, Trash2, Plus } from 'lucide-react';
+import useAuthStore from '../store/useAuthStore';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MenuManagement = () => {
     const [menus, setMenus] = useState([]);
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingMenu, setEditingMenu] = useState(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [menuToDelete, setMenuToDelete] = useState(null);
     const [formData, setFormData] = useState({
         label: '',
         path: '',
@@ -16,6 +50,9 @@ const MenuManagement = () => {
         sortOrder: 0
     });
 
+    const currentUser = useAuthStore((state) => state.user);
+    const canManage = currentUser?.roles?.includes('ROLE_ADMIN');
+
     useEffect(() => {
         fetchMenus();
     }, []);
@@ -23,12 +60,12 @@ const MenuManagement = () => {
     const fetchMenus = async () => {
         try {
             const response = await api.get('/menus');
-            // Flatten the menu tree for table display
             const flatMenus = flattenMenuTree(response.data);
             setMenus(flatMenus);
             setError(null);
         } catch (err) {
             setError("Failed to load menus.");
+            toast.error("Failed to load menus");
         }
     };
 
@@ -84,180 +121,209 @@ const MenuManagement = () => {
 
             if (editingMenu) {
                 await api.put(`/menus/${editingMenu.id}`, payload);
+                toast.success("Menu updated successfully");
             } else {
                 await api.post('/menus', payload);
+                toast.success("Menu created successfully");
             }
 
             fetchMenus();
             handleCloseModal();
         } catch (err) {
-            alert(editingMenu ? "Failed to update menu" : "Failed to create menu");
+            toast.error(editingMenu ? "Failed to update menu" : "Failed to create menu");
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this menu?")) return;
+    const handleDeleteClick = (menu) => {
+        setMenuToDelete(menu);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!menuToDelete) return;
+
         try {
-            await api.delete(`/menus/${id}`);
+            await api.delete(`/menus/${menuToDelete.id}`);
             fetchMenus();
+            toast.success("Menu deleted successfully");
         } catch (err) {
-            alert("Failed to delete menu.");
+            toast.error("Failed to delete menu");
+        } finally {
+            setDeleteDialogOpen(false);
+            setMenuToDelete(null);
         }
     };
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Menu Management</h1>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                    <Plus className="h-5 w-5" />
-                    Add Menu
-                </button>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold tracking-tight">Menu Management</h1>
+                {canManage && (
+                    <Button onClick={() => handleOpenModal()}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Menu
+                    </Button>
+                )}
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    {error}
-                </div>
+                <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
             )}
 
-            <div className="overflow-hidden rounded-lg bg-white shadow">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Path</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort Order</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+            <div className="rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Label</TableHead>
+                            <TableHead>Path</TableHead>
+                            <TableHead>Icon</TableHead>
+                            <TableHead>Permission</TableHead>
+                            <TableHead>Sort Order</TableHead>
+                            {canManage && <TableHead className="text-right">Actions</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {menus.map((menu) => (
-                            <tr key={menu.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{menu.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <TableRow key={menu.id}>
+                                <TableCell className="font-medium">{menu.id}</TableCell>
+                                <TableCell>
                                     <span style={{ paddingLeft: `${menu.level * 20}px` }}>
                                         {menu.level > 0 && '└─ '}
                                         {menu.label}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{menu.path}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{menu.icon}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{menu.permissionRequired || '-'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{menu.sortOrder}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => handleOpenModal(menu)}
-                                        className="text-blue-600 hover:text-blue-900 mr-4"
-                                    >
-                                        <Edit2 className="h-5 w-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(menu.id)}
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        <Trash2 className="h-5 w-5" />
-                                    </button>
-                                </td>
-                            </tr>
+                                </TableCell>
+                                <TableCell>{menu.path}</TableCell>
+                                <TableCell>{menu.icon}</TableCell>
+                                <TableCell>{menu.permissionRequired || '-'}</TableCell>
+                                <TableCell>{menu.sortOrder}</TableCell>
+                                {canManage && (
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleOpenModal(menu)}
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDeleteClick(menu)}
+                                            >
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                )}
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">
-                                {editingMenu ? 'Edit Menu' : 'Add Menu'}
-                            </h2>
-                            <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
+            {/* Create/Edit Dialog */}
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingMenu ? 'Edit Menu' : 'Add Menu'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingMenu ? 'Update menu information' : 'Create a new menu item'}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Label</label>
-                                <input
-                                    type="text"
+                    <form onSubmit={handleSubmit}>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="label">Label</Label>
+                                <Input
+                                    id="label"
                                     value={formData.label}
                                     onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Path</label>
-                                <input
-                                    type="text"
+                            <div className="space-y-2">
+                                <Label htmlFor="path">Path</Label>
+                                <Input
+                                    id="path"
                                     value={formData.path}
                                     onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="/example"
                                     required
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
-                                <input
-                                    type="text"
+                            <div className="space-y-2">
+                                <Label htmlFor="icon">Icon</Label>
+                                <Input
+                                    id="icon"
                                     value={formData.icon}
                                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="dashboard"
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Permission Required</label>
-                                <input
-                                    type="text"
+                            <div className="space-y-2">
+                                <Label htmlFor="permission">Permission Required</Label>
+                                <Input
+                                    id="permission"
                                     value={formData.permissionRequired}
                                     onChange={(e) => setFormData({ ...formData, permissionRequired: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="e.g., CAN_MANAGE_USERS"
+                                    placeholder="CAN_VIEW_USER"
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
-                                <input
+                            <div className="space-y-2">
+                                <Label htmlFor="sortOrder">Sort Order</Label>
+                                <Input
+                                    id="sortOrder"
                                     type="number"
                                     value={formData.sortOrder}
                                     onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 />
                             </div>
+                        </div>
 
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                >
-                                    {editingMenu ? 'Update' : 'Create'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={handleCloseModal}>
+                                Cancel
+                            </Button>
+                            <Button type="submit">
+                                {editingMenu ? 'Update' : 'Create'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the menu <strong>{menuToDelete?.label}</strong>.
+                            This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setMenuToDelete(null)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm}>
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

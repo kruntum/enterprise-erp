@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -19,53 +25,59 @@ const Login = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="flex min-h-screen items-center justify-center bg-background">
+            <Card className="w-full max-w-sm">
+                <CardHeader className="space-y-1 py-4 px-5">
+                    <CardTitle className="text-xl font-semibold text-center">Enterprise ERP</CardTitle>
+                    <CardDescription className="text-center text-xs">
                         Sign in to your account
-                    </h2>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-                            {error}
-                        </div>
-                    )}
-                    <div className="-space-y-px rounded-md shadow-sm">
-                        <div>
-                            <input
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="px-5 pb-5">
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        {error && (
+                            <Alert variant="destructive" className="py-2">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                <AlertDescription className="text-xs">{error}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="username" className="text-xs">Username</Label>
+                            <Input
+                                id="username"
                                 type="text"
-                                required
-                                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 px-3"
-                                placeholder="Username"
+                                placeholder="Enter your username"
+                                className="h-9 text-sm"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
+                                required
                             />
                         </div>
-                        <div>
-                            <input
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="password" className="text-xs">Password</Label>
+                            <Input
+                                id="password"
                                 type="password"
-                                required
-                                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 px-3"
-                                placeholder="Password"
+                                placeholder="Enter your password"
+                                className="h-9 text-sm"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                required
                             />
                         </div>
-                    </div>
 
-                    <div>
-                        <button
+                        <Button
                             type="submit"
+                            className="w-full h-9 text-sm"
                             disabled={isLoading}
-                            className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
                         >
                             {isLoading ? 'Signing in...' : 'Sign in'}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 };

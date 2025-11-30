@@ -28,6 +28,37 @@ const useAuthStore = create((set) => ({
         localStorage.removeItem('user');
         set({ user: null, isAuthenticated: false });
     },
+
+    // Check if user has a specific permission
+    hasPermission: (permission) => {
+        const { user } = useAuthStore.getState();
+        if (!user || !user.roles) return false;
+
+        // Check if any role has the permission
+        return user.roles.some(role =>
+            role.permissions && role.permissions.some(p => p.name === permission)
+        );
+    },
+
+    // Check if user has a specific role
+    hasRole: (roleName) => {
+        const { user } = useAuthStore.getState();
+        if (!user || !user.roles) return false;
+
+        return user.roles.some(role => role.name === roleName);
+    },
+
+    // Check if user has any of the specified permissions
+    hasAnyPermission: (permissions) => {
+        const { hasPermission } = useAuthStore.getState();
+        return permissions.some(permission => hasPermission(permission));
+    },
+
+    // Check if user has any of the specified roles
+    hasAnyRole: (roles) => {
+        const { hasRole } = useAuthStore.getState();
+        return roles.some(role => hasRole(role));
+    },
 }));
 
 export default useAuthStore;

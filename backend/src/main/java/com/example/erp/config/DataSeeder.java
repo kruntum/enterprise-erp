@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -60,15 +61,40 @@ public class DataSeeder implements CommandLineRunner {
             canViewRole.setName("CAN_VIEW_ROLE");
             canViewRole.setDescription("Can view roles");
 
-            permissionRepository.saveAll(Arrays.asList(
+            Permission canViewMenu = new Permission();
+            canViewMenu.setName("CAN_VIEW_MENU");
+            canViewMenu.setDescription("Can view menus");
+
+            Permission canCreateMenu = new Permission();
+            canCreateMenu.setName("CAN_CREATE_MENU");
+            canCreateMenu.setDescription("Can create new menus");
+
+            Permission canUpdateMenu = new Permission();
+            canUpdateMenu.setName("CAN_UPDATE_MENU");
+            canUpdateMenu.setDescription("Can update existing menus");
+
+            Permission canDeleteMenu = new Permission();
+            canDeleteMenu.setName("CAN_DELETE_MENU");
+            canDeleteMenu.setDescription("Can delete menus");
+
+            Permission canViewPermission = new Permission();
+            canViewPermission.setName("CAN_VIEW_PERMISSION");
+            canViewPermission.setDescription("Can view permissions");
+
+            permissionRepository.saveAll(List.of(
                     canViewUser,
                     canCreateUser,
                     canUpdateUser,
                     canDeleteUser,
-                    canViewRole));
+                    canViewRole,
+                    canViewMenu,
+                    canCreateMenu,
+                    canUpdateMenu,
+                    canDeleteMenu,
+                    canViewPermission));
 
             log.info(
-                    "Permissions seeded: CAN_VIEW_USER, CAN_CREATE_USER, CAN_UPDATE_USER, CAN_DELETE_USER, CAN_VIEW_ROLE");
+                    "Permissions seeded: User, Role, Menu, and Permission permissions");
         } else {
             log.info("Permissions already exist, skipping permission seeding");
         }
@@ -84,6 +110,11 @@ public class DataSeeder implements CommandLineRunner {
             Permission canUpdateUser = permissionRepository.findByName("CAN_UPDATE_USER").orElse(null);
             Permission canDeleteUser = permissionRepository.findByName("CAN_DELETE_USER").orElse(null);
             Permission canViewRole = permissionRepository.findByName("CAN_VIEW_ROLE").orElse(null);
+            Permission canViewMenu = permissionRepository.findByName("CAN_VIEW_MENU").orElse(null);
+            Permission canCreateMenu = permissionRepository.findByName("CAN_CREATE_MENU").orElse(null);
+            Permission canUpdateMenu = permissionRepository.findByName("CAN_UPDATE_MENU").orElse(null);
+            Permission canDeleteMenu = permissionRepository.findByName("CAN_DELETE_MENU").orElse(null);
+            Permission canViewPermission = permissionRepository.findByName("CAN_VIEW_PERMISSION").orElse(null);
 
             // ROLE_USER - can only view
             Role userRole = new Role();
@@ -109,7 +140,12 @@ public class DataSeeder implements CommandLineRunner {
                     canCreateUser,
                     canUpdateUser,
                     canDeleteUser,
-                    canViewRole)));
+                    canViewRole,
+                    canViewMenu,
+                    canCreateMenu,
+                    canUpdateMenu,
+                    canDeleteMenu,
+                    canViewPermission)));
 
             roleRepository.saveAll(Arrays.asList(userRole, hrRole, adminRole));
             log.info("Roles seeded with permissions: ROLE_USER, ROLE_HR, ROLE_ADMIN");

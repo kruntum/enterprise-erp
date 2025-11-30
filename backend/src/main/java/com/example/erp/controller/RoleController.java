@@ -28,9 +28,9 @@ public class RoleController {
     @Autowired
     PermissionRepository permissionRepository;
 
-    @Operation(summary = "Get all roles", description = "Retrieve a list of all roles.")
+    @Operation(summary = "Get all roles", description = "Retrieve a list of all roles. Requires CAN_VIEW_ROLE permission or ADMIN role.")
     @GetMapping
-    @PreAuthorize("hasPermission('ROLE', 'CAN_VIEW_ROLE') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
     public List<Role> getAllRoles() {
         return roleRepository.findAll();
     }
@@ -38,7 +38,7 @@ public class RoleController {
     @Operation(summary = "Get role by ID", description = "Retrieve a role by ID.")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Role getRoleById(@PathVariable Long id) {
+    public Role getRoleById(@PathVariable long id) {
         return roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
     }
@@ -57,12 +57,15 @@ public class RoleController {
     @Operation(summary = "Update role permissions", description = "Update permissions for a specific role.")
     @PutMapping("/{id}/permissions")
     @PreAuthorize("hasRole('ADMIN')")
-    public Role updateRolePermissions(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
+    public Role updateRolePermissions(@PathVariable long id, @RequestBody List<Long> permissionIds) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         Set<Permission> permissions = new HashSet<>();
         for (Long permissionId : permissionIds) {
+            if (permissionId == null) {
+                continue;
+            }
             Permission permission = permissionRepository.findById(permissionId)
                     .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId));
             permissions.add(permission);
@@ -75,7 +78,7 @@ public class RoleController {
     @Operation(summary = "Delete role", description = "Delete a role by ID.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteRole(@PathVariable Long id) {
+    public void deleteRole(@PathVariable long id) {
         roleRepository.deleteById(id);
     }
 

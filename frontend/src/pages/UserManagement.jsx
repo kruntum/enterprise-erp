@@ -1,7 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
-import { X, Edit2, Trash2, Plus } from 'lucide-react';
+import { toast } from "sonner";
+import { Edit2, Trash2, Plus } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -9,6 +42,8 @@ const UserManagement = () => {
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -31,6 +66,7 @@ const UserManagement = () => {
             setError(null);
         } catch (err) {
             setError("Failed to load users. You might not have permission.");
+            toast.error("Failed to load users");
         }
     };
 
@@ -40,6 +76,7 @@ const UserManagement = () => {
             setRoles(response.data);
         } catch (err) {
             console.error("Failed to load roles", err);
+            toast.error("Failed to load roles");
         }
     };
 
@@ -74,27 +111,37 @@ const UserManagement = () => {
             };
 
             if (editingUser) {
-                // Update
                 await api.put(`/users/${editingUser.id}`, payload);
+                toast.success("User updated successfully");
             } else {
-                // Create
                 await api.post('/users', payload);
+                toast.success("User created successfully");
             }
 
             fetchUsers();
             handleCloseModal();
         } catch (err) {
-            alert(editingUser ? "Failed to update user" : "Failed to create user");
+            toast.error(editingUser ? "Failed to update user" : "Failed to create user");
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this user?")) return;
+    const handleDeleteClick = (user) => {
+        setUserToDelete(user);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!userToDelete) return;
+
         try {
-            await api.delete(`/users/${id}`);
-            setUsers(users.filter(u => u.id !== id));
+            await api.delete(`/users/${userToDelete.id}`);
+            setUsers(users.filter(u => u.id !== userToDelete.id));
+            toast.success("User deleted successfully");
         } catch (err) {
-            alert("Failed to delete user.");
+            toast.error("Failed to delete user");
+        } finally {
+            setDeleteDialogOpen(false);
+            setUserToDelete(null);
         }
     };
 
@@ -108,153 +155,182 @@ const UserManagement = () => {
     };
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+        <div className="space-y-3">
+            <div className="flex justify-between items-center">
+                <h1 className="text-xl font-semibold tracking-tight">User Management</h1>
                 {canManage && (
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                    >
-                        <Plus className="h-5 w-5" />
+                    <Button size="sm" onClick={() => handleOpenModal()}>
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
                         Add User
-                    </button>
+                    </Button>
                 )}
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    {error}
-                </div>
+                <Alert variant="destructive" className="py-2">
+                    <AlertDescription className="text-xs">{error}</AlertDescription>
+                </Alert>
             )}
 
-            <div className="overflow-hidden rounded-lg bg-white shadow">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-                            {canManage && <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+            <div className="rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="text-xs">
+                            <TableHead className="h-9 py-2">ID</TableHead>
+                            <TableHead className="h-9 py-2">Username</TableHead>
+                            <TableHead className="h-9 py-2">Email</TableHead>
+                            <TableHead className="h-9 py-2">Roles</TableHead>
+                            {canManage && <TableHead className="h-9 py-2 text-right">Actions</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {users.map((user) => (
-                            <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.roles.map(r => r.name).join(', ')}
-                                </td>
+                            <TableRow key={user.id} className="text-xs">
+                                <TableCell className="font-medium py-2">{user.id}</TableCell>
+                                <TableCell className="py-2">{user.username}</TableCell>
+                                <TableCell className="py-2">{user.email}</TableCell>
+                                <TableCell className="py-2">
+                                    <div className="flex gap-1 flex-wrap">
+                                        {user.roles.map(r => (
+                                            <Badge key={r.id} variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                {r.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </TableCell>
                                 {canManage && (
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => handleOpenModal(user)}
-                                            className="text-blue-600 hover:text-blue-900 mr-4"
-                                        >
-                                            <Edit2 className="h-5 w-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user.id)}
-                                            className="text-red-600 hover:text-red-900"
-                                        >
-                                            <Trash2 className="h-5 w-5" />
-                                        </button>
-                                    </td>
+                                    <TableCell className="text-right py-2">
+                                        <div className="flex justify-end gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 w-7 p-0"
+                                                onClick={() => handleOpenModal(user)}
+                                            >
+                                                <Edit2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 w-7 p-0"
+                                                onClick={() => handleDeleteClick(user)}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 )}
-                            </tr>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">
-                                {editingUser ? 'Edit User' : 'Add User'}
-                            </h2>
-                            <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
+            {/* Create/Edit Dialog */}
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-base">
+                            {editingUser ? 'Edit User' : 'Add User'}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {editingUser ? 'Update user information and roles' : 'Create a new user account'}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                                <input
-                                    type="text"
+                    <form onSubmit={handleSubmit}>
+                        <div className="space-y-3 py-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="username" className="text-xs">Username</Label>
+                                <Input
+                                    id="username"
+                                    className="h-9 text-sm"
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email" className="text-xs">Email</Label>
+                                <Input
+                                    id="email"
                                     type="email"
+                                    className="h-9 text-sm"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="password" className="text-xs">
                                     Password {editingUser && '(leave blank to keep current)'}
-                                </label>
-                                <input
+                                </Label>
+                                <Input
+                                    id="password"
                                     type="password"
+                                    className="h-9 text-sm"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required={!editingUser}
                                 />
                             </div>
 
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Roles</label>
-                                <div className="space-y-2">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Roles</Label>
+                                <div className="space-y-1.5">
                                     {roles.map(role => (
-                                        <label key={role.id} className="flex items-center">
-                                            <input
-                                                type="checkbox"
+                                        <div key={role.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`role-${role.id}`}
                                                 checked={formData.roles.includes(role.id)}
-                                                onChange={() => handleRoleToggle(role.id)}
-                                                className="mr-2"
+                                                onCheckedChange={() => handleRoleToggle(role.id)}
                                             />
-                                            <span>{role.name}</span>
-                                        </label>
+                                            <Label
+                                                htmlFor={`role-${role.id}`}
+                                                className="text-xs font-normal cursor-pointer"
+                                            >
+                                                {role.name}
+                                            </Label>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                >
-                                    {editingUser ? 'Update' : 'Create'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                        <DialogFooter>
+                            <Button type="button" size="sm" variant="outline" onClick={handleCloseModal}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" size="sm">
+                                {editingUser ? 'Update' : 'Create'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-base">Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs">
+                            This will permanently delete the user <strong>{userToDelete?.username}</strong>.
+                            This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setUserToDelete(null)} className="h-9 text-sm">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="h-9 text-sm">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

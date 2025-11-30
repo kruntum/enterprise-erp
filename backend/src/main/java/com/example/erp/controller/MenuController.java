@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 
@@ -31,25 +32,25 @@ public class MenuController {
         return menuService.getMenuTree();
     }
 
-    @Operation(summary = "Get menu by ID", description = "Retrieve a specific menu item by ID.")
+    @Operation(summary = "Get menu by ID", description = "Retrieve a specific menu item by ID. Requires CAN_VIEW_MENU permission.")
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Menu getMenuById(@PathVariable Long id) {
+    @PreAuthorize("hasAuthority('CAN_VIEW_MENU') or hasRole('ADMIN')")
+    public Menu getMenuById(@PathVariable long id) {
         return menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found"));
     }
 
-    @Operation(summary = "Create menu", description = "Create a new menu item.")
+    @Operation(summary = "Create menu", description = "Create a new menu item. Requires CAN_CREATE_MENU permission.")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public Menu createMenu(@RequestBody Menu menu) {
+    @PreAuthorize("hasAuthority('CAN_CREATE_MENU') or hasRole('ADMIN')")
+    public Menu createMenu(@RequestBody @NonNull Menu menu) {
         return menuRepository.save(menu);
     }
 
-    @Operation(summary = "Update menu", description = "Update an existing menu item.")
+    @Operation(summary = "Update menu", description = "Update an existing menu item. Requires CAN_UPDATE_MENU permission.")
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Menu updateMenu(@PathVariable Long id, @RequestBody Menu menuDetails) {
+    @PreAuthorize("hasAuthority('CAN_UPDATE_MENU') or hasRole('ADMIN')")
+    public Menu updateMenu(@PathVariable long id, @RequestBody Menu menuDetails) {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found"));
 
@@ -63,10 +64,10 @@ public class MenuController {
         return menuRepository.save(menu);
     }
 
-    @Operation(summary = "Delete menu", description = "Delete a menu item by ID.")
+    @Operation(summary = "Delete menu", description = "Delete a menu item by ID. Requires CAN_DELETE_MENU permission.")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void deleteMenu(@PathVariable Long id) {
+    @PreAuthorize("hasAuthority('CAN_DELETE_MENU') or hasRole('ADMIN')")
+    public void deleteMenu(@PathVariable long id) {
         menuRepository.deleteById(id);
     }
 }

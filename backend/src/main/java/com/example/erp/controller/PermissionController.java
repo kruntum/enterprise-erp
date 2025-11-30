@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -23,7 +24,7 @@ public class PermissionController {
 
     @Operation(summary = "Get all permissions", description = "Retrieve a list of all permissions.")
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_PERMISSION') or hasRole('ADMIN')")
     public List<Permission> getAllPermissions() {
         return permissionRepository.findAll();
     }
@@ -31,7 +32,7 @@ public class PermissionController {
     @Operation(summary = "Get permission by ID", description = "Retrieve a permission by ID.")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Permission getPermissionById(@PathVariable Long id) {
+    public Permission getPermissionById(@PathVariable long id) {
         return permissionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Permission not found"));
     }
@@ -40,13 +41,13 @@ public class PermissionController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Permission createPermission(@RequestBody Permission permission) {
-        return permissionRepository.save(permission);
+        return permissionRepository.save(Objects.requireNonNull(permission));
     }
 
     @Operation(summary = "Update permission", description = "Update an existing permission.")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Permission updatePermission(@PathVariable Long id, @RequestBody Permission permissionDetails) {
+    public Permission updatePermission(@PathVariable long id, @RequestBody Permission permissionDetails) {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Permission not found"));
 
@@ -59,7 +60,7 @@ public class PermissionController {
     @Operation(summary = "Delete permission", description = "Delete a permission by ID.")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void deletePermission(@PathVariable Long id) {
+    public void deletePermission(@PathVariable long id) {
         permissionRepository.deleteById(id);
     }
 }

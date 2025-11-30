@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
     Home,
     Users,
@@ -33,17 +35,9 @@ const Sidebar = () => {
         fetchMenus();
     }, []);
 
-    // Helper to check if user has permission for a menu
     const hasPermission = (menu) => {
         if (!menu.permissionRequired) return true;
-        // In a real app, check against user.roles or user.permissions
-        // For this demo, we assume the backend filters menus or we check roles here
-        // Simple check: if user has role 'ROLE_ADMIN', they see everything
         if (user?.roles?.includes('ROLE_ADMIN')) return true;
-
-        // Check if user has the specific permission (if we had a list of permissions in user object)
-        // For now, let's assume the backend returns only what the user can see, 
-        // OR we filter here based on roles.
         return true;
     };
 
@@ -54,19 +48,20 @@ const Sidebar = () => {
         const Icon = getIcon(menu.icon);
 
         return (
-            <li key={menu.id} className="mb-1">
-                <Link
-                    to={menu.path}
-                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                        }`}
+            <li key={menu.id}>
+                <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    className={`w-full justify-start h-8 text-xs font-normal ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
+                    asChild
                 >
-                    <Icon className="mr-3 h-5 w-5" />
-                    {menu.label}
-                </Link>
+                    <Link to={menu.path}>
+                        <Icon className="mr-2 h-3.5 w-3.5" />
+                        {menu.label}
+                    </Link>
+                </Button>
                 {menu.children && menu.children.length > 0 && (
-                    <ul className="ml-6 mt-1 border-l border-gray-700 pl-2">
+                    <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-2">
                         {menu.children.map(child => renderMenuItem(child))}
                     </ul>
                 )}
@@ -90,34 +85,36 @@ const Sidebar = () => {
     }
 
     return (
-        <div className="flex h-full w-64 flex-col bg-gray-900 text-white">
-            <div className="flex h-16 items-center justify-center border-b border-gray-800">
-                <h1 className="text-xl font-bold">Enterprise ERP</h1>
+        <div className="flex h-full w-56 flex-col border-r bg-card text-card-foreground">
+            <div className="flex h-12 items-center px-3 border-b">
+                <h1 className="text-base font-semibold">Enterprise ERP</h1>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-4">
-                <ul className="space-y-1 px-2">
+            <nav className="flex-1 overflow-y-auto py-2 px-2">
+                <ul className="space-y-0.5">
                     {menus.map((menu) => renderMenuItem(menu))}
                 </ul>
             </nav>
 
-            <div className="border-t border-gray-800 p-4">
-                <div className="mb-2 flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center font-bold">
+            <div className="border-t p-2">
+                <div className="mb-2 flex items-center px-2 py-1.5">
+                    <Badge className="h-7 w-7 rounded-full flex items-center justify-center text-xs shrink-0">
                         {user?.username?.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="ml-3">
-                        <p className="text-sm font-medium">{user?.username}</p>
-                        <p className="text-xs text-gray-400">{user?.roles?.[0]}</p>
+                    </Badge>
+                    <div className="ml-2 flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{user?.username}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
                     </div>
                 </div>
-                <button
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start h-8 text-xs"
                     onClick={logout}
-                    className="flex w-full items-center rounded-md px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
                 >
-                    <LogOut className="mr-3 h-5 w-5" />
+                    <LogOut className="mr-2 h-3 w-3" />
                     Logout
-                </button>
+                </Button>
             </div>
         </div>
     );
