@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { toast } from "sonner";
 import { Edit2, Trash2, Plus } from 'lucide-react';
+import { permissionSchema } from '../schemas';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +45,22 @@ const PermissionManagement = () => {
     const [editingPermission, setEditingPermission] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [permissionToDelete, setPermissionToDelete] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: ''
-    });
 
-    const currentUser = useAuthStore((state) => state.user);
-    const canManage = currentUser?.roles?.includes('ROLE_ADMIN');
+    const { hasPermission, hasRole } = useAuthStore();
+
+    // Check permissions
+    const canCreate = hasPermission('CAN_CREATE_PERMISSION') || hasRole('ROLE_ADMIN');
+    const canUpdate = hasPermission('CAN_UPDATE_PERMISSION') || hasRole('ROLE_ADMIN');
+    const canDelete = hasPermission('CAN_DELETE_PERMISSION') || hasRole('ROLE_ADMIN');
+
+    // Form with validation
+    const { register, handleSubmit, reset, formState: { errors } } = useForm({
+        resolver: zodResolver(permissionSchema),
+        defaultValues: {
+            name: '',
+            description: ''
+        }
+    });
 
     useEffect(() => {
         fetchPermissions();
@@ -68,13 +80,16 @@ const PermissionManagement = () => {
     const handleOpenModal = (permission = null) => {
         if (permission) {
             setEditingPermission(permission);
-            setFormData({
+            reset({
                 name: permission.name,
                 description: permission.description || ''
             });
         } else {
             setEditingPermission(null);
-            setFormData({ name: '', description: '' });
+            reset({
+                name: '',
+                description: ''
+            });
         }
         setShowModal(true);
     };
@@ -82,17 +97,16 @@ const PermissionManagement = () => {
     const handleCloseModal = () => {
         setShowModal(false);
         setEditingPermission(null);
-        setFormData({ name: '', description: '' });
+        reset();
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const onSubmit = async (data) => {
         try {
             if (editingPermission) {
-                await api.put(`/permissions/${editingPermission.id}`, formData);
+                await api.put(`/permissions/${editingPermission.id}`, data);
                 toast.success("Permission updated successfully");
             } else {
-                await api.post('/permissions', formData);
+                await api.post('/permissions', data);
                 toast.success("Permission created successfully");
             }
 
@@ -127,7 +141,7 @@ const PermissionManagement = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight">Permission Management</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={() => handleOpenModal()}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Permission
@@ -148,7 +162,7 @@ const PermissionManagement = () => {
                             <TableHead>ID</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Description</TableHead>
-                            {canManage && <TableHead className="text-right">Actions</TableHead>}
+                            {(canUpdate || canDelete) && <TableHead className="text-right">Actions</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -161,23 +175,27 @@ const PermissionManagement = () => {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{permission.description || '-'}</TableCell>
-                                {canManage && (
+                                {(canUpdate || canDelete) && (
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleOpenModal(permission)}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDeleteClick(permission)}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            {canUpdate && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleOpenModal(permission)}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteClick(permission)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 )}
@@ -199,19 +217,20 @@ const PermissionManagement = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Permission Name</Label>
                                 <Input
                                     id="name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    {...register("name")}
                                     placeholder="e.g., CAN_VIEW_USER"
-                                    required
                                 />
+                                {errors.name && (
+                                    <p className="text-sm text-red-600">{errors.name.message}</p>
+                                )}
                                 <p className="text-xs text-muted-foreground">
-                                    Use uppercase with underscores (e.g., CAN_VIEW_USER)
+                                    Use uppercase with underscores starting with CAN_ (e.g., CAN_VIEW_USER)
                                 </p>
                             </div>
 
@@ -219,10 +238,12 @@ const PermissionManagement = () => {
                                 <Label htmlFor="description">Description</Label>
                                 <Input
                                     id="description"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    {...register("description")}
                                     placeholder="Describe what this permission allows"
                                 />
+                                {errors.description && (
+                                    <p className="text-sm text-red-600">{errors.description.message}</p>
+                                )}
                             </div>
                         </div>
 

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { toast } from "sonner";
 import { Edit2, Trash2, Plus } from 'lucide-react';
+import { roleSchema } from '../schemas';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,14 +47,23 @@ const RoleManagement = () => {
     const [editingRole, setEditingRole] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [roleToDelete, setRoleToDelete] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        permissions: []
-    });
 
-    const currentUser = useAuthStore((state) => state.user);
-    const canManage = currentUser?.roles?.includes('ROLE_ADMIN');
+    const { hasPermission, hasRole } = useAuthStore();
+
+    // Check permissions
+    const canCreate = hasPermission('CAN_CREATE_ROLE') || hasRole('ROLE_ADMIN');
+    const canUpdate = hasPermission('CAN_UPDATE_ROLE') || hasRole('ROLE_ADMIN');
+    const canDelete = hasPermission('CAN_DELETE_ROLE') || hasRole('ROLE_ADMIN');
+
+    // Form with validation
+    const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
+        resolver: zodResolver(roleSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            permissions: []
+        }
+    });
 
     useEffect(() => {
         fetchRoles();
@@ -82,14 +94,18 @@ const RoleManagement = () => {
     const handleOpenModal = (role = null) => {
         if (role) {
             setEditingRole(role);
-            setFormData({
+            reset({
                 name: role.name,
                 description: role.description || '',
                 permissions: role.permissions.map(p => p.id)
             });
         } else {
             setEditingRole(null);
-            setFormData({ name: '', description: '', permissions: [] });
+            reset({
+                name: '',
+                description: '',
+                permissions: []
+            });
         }
         setShowModal(true);
     };
@@ -97,15 +113,14 @@ const RoleManagement = () => {
     const handleCloseModal = () => {
         setShowModal(false);
         setEditingRole(null);
-        setFormData({ name: '', description: '', permissions: [] });
+        reset();
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const onSubmit = async (data) => {
         try {
             const payload = {
-                ...formData,
-                permissions: permissions.filter(p => formData.permissions.includes(p.id))
+                ...data,
+                permissions: permissions.filter(p => data.permissions.includes(p.id))
             };
 
             if (editingRole) {
@@ -143,20 +158,11 @@ const RoleManagement = () => {
         }
     };
 
-    const handlePermissionToggle = (permissionId) => {
-        setFormData(prev => ({
-            ...prev,
-            permissions: prev.permissions.includes(permissionId)
-                ? prev.permissions.filter(id => id !== permissionId)
-                : [...prev.permissions, permissionId]
-        }));
-    };
-
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight">Role Management</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={() => handleOpenModal()}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Role
@@ -178,7 +184,7 @@ const RoleManagement = () => {
                             <TableHead>Name</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead>Permissions</TableHead>
-                            {canManage && <TableHead className="text-right">Actions</TableHead>}
+                            {(canUpdate || canDelete) && <TableHead className="text-right">Actions</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -196,23 +202,27 @@ const RoleManagement = () => {
                                         ))}
                                     </div>
                                 </TableCell>
-                                {canManage && (
+                                {(canUpdate || canDelete) && (
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleOpenModal(role)}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDeleteClick(role)}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            {canUpdate && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleOpenModal(role)}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteClick(role)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 )}
@@ -234,46 +244,65 @@ const RoleManagement = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Role Name</Label>
                                 <Input
                                     id="name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
+                                    {...register("name")}
+                                    placeholder="e.g., ROLE_MANAGER"
                                 />
+                                {errors.name && (
+                                    <p className="text-sm text-red-600">{errors.name.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="description">Description</Label>
                                 <Input
                                     id="description"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    {...register("description")}
+                                    placeholder="Describe the role"
                                 />
+                                {errors.description && (
+                                    <p className="text-sm text-red-600">{errors.description.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <Label>Permissions</Label>
-                                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
-                                    {permissions.map(permission => (
-                                        <div key={permission.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`permission-${permission.id}`}
-                                                checked={formData.permissions.includes(permission.id)}
-                                                onCheckedChange={() => handlePermissionToggle(permission.id)}
-                                            />
-                                            <Label
-                                                htmlFor={`permission-${permission.id}`}
-                                                className="text-sm font-normal cursor-pointer"
-                                            >
-                                                {permission.name}
-                                            </Label>
+                                <Controller
+                                    name="permissions"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
+                                            {permissions.map(permission => (
+                                                <div key={permission.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`permission-${permission.id}`}
+                                                        checked={field.value?.includes(permission.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            const updatedPerms = checked
+                                                                ? [...(field.value || []), permission.id]
+                                                                : field.value?.filter(id => id !== permission.id) || [];
+                                                            field.onChange(updatedPerms);
+                                                        }}
+                                                    />
+                                                    <Label
+                                                        htmlFor={`permission-${permission.id}`}
+                                                        className="text-sm font-normal cursor-pointer"
+                                                    >
+                                                        {permission.name}
+                                                    </Label>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+                                />
+                                {errors.permissions && (
+                                    <p className="text-sm text-red-600">{errors.permissions.message}</p>
+                                )}
                             </div>
                         </div>
 

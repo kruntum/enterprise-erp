@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { toast } from "sonner";
 import { Edit2, Trash2, Plus } from 'lucide-react';
+import { userSchema } from '../schemas';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,15 +47,24 @@ const UserManagement = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        roles: []
-    });
 
-    const currentUser = useAuthStore((state) => state.user);
-    const canManage = currentUser?.roles?.includes('ROLE_ADMIN');
+    const { hasPermission, hasRole } = useAuthStore();
+
+    // Check permissions
+    const canCreate = hasPermission('CAN_CREATE_USER') || hasRole('ROLE_ADMIN');
+    const canUpdate = hasPermission('CAN_UPDATE_USER') || hasRole('ROLE_ADMIN');
+    const canDelete = hasPermission('CAN_DELETE_USER') || hasRole('ROLE_ADMIN');
+
+    // Form with validation
+    const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
+        resolver: zodResolver(userSchema),
+        defaultValues: {
+            username: '',
+            email: '',
+            password: '',
+            roles: []
+        }
+    });
 
     useEffect(() => {
         fetchUsers();
@@ -83,7 +95,7 @@ const UserManagement = () => {
     const handleOpenModal = (user = null) => {
         if (user) {
             setEditingUser(user);
-            setFormData({
+            reset({
                 username: user.username,
                 email: user.email,
                 password: '',
@@ -91,7 +103,12 @@ const UserManagement = () => {
             });
         } else {
             setEditingUser(null);
-            setFormData({ username: '', email: '', password: '', roles: [] });
+            reset({
+                username: '',
+                email: '',
+                password: '',
+                roles: []
+            });
         }
         setShowModal(true);
     };
@@ -99,16 +116,20 @@ const UserManagement = () => {
     const handleCloseModal = () => {
         setShowModal(false);
         setEditingUser(null);
-        setFormData({ username: '', email: '', password: '', roles: [] });
+        reset();
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const onSubmit = async (data) => {
         try {
             const payload = {
-                ...formData,
-                roles: roles.filter(r => formData.roles.includes(r.id))
+                ...data,
+                roles: roles.filter(r => data.roles.includes(r.id))
             };
+
+            // Remove password if it's empty during edit
+            if (editingUser && !data.password) {
+                delete payload.password;
+            }
 
             if (editingUser) {
                 await api.put(`/users/${editingUser.id}`, payload);
@@ -145,20 +166,11 @@ const UserManagement = () => {
         }
     };
 
-    const handleRoleToggle = (roleId) => {
-        setFormData(prev => ({
-            ...prev,
-            roles: prev.roles.includes(roleId)
-                ? prev.roles.filter(id => id !== roleId)
-                : [...prev.roles, roleId]
-        }));
-    };
-
     return (
         <div className="space-y-3">
             <div className="flex justify-between items-center">
                 <h1 className="text-xl font-semibold tracking-tight">User Management</h1>
-                {canManage && (
+                {canCreate && (
                     <Button size="sm" onClick={() => handleOpenModal()}>
                         <Plus className="mr-1.5 h-3.5 w-3.5" />
                         Add User
@@ -180,7 +192,7 @@ const UserManagement = () => {
                             <TableHead className="h-9 py-2">Username</TableHead>
                             <TableHead className="h-9 py-2">Email</TableHead>
                             <TableHead className="h-9 py-2">Roles</TableHead>
-                            {canManage && <TableHead className="h-9 py-2 text-right">Actions</TableHead>}
+                            {(canUpdate || canDelete) && <TableHead className="h-9 py-2 text-right">Actions</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -198,25 +210,29 @@ const UserManagement = () => {
                                         ))}
                                     </div>
                                 </TableCell>
-                                {canManage && (
+                                {(canUpdate || canDelete) && (
                                     <TableCell className="text-right py-2">
                                         <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 w-7 p-0"
-                                                onClick={() => handleOpenModal(user)}
-                                            >
-                                                <Edit2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 w-7 p-0"
-                                                onClick={() => handleDeleteClick(user)}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                            </Button>
+                                            {canUpdate && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 w-7 p-0"
+                                                    onClick={() => handleOpenModal(user)}
+                                                >
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 w-7 p-0"
+                                                    onClick={() => handleDeleteClick(user)}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 )}
@@ -238,17 +254,18 @@ const UserManagement = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <div className="space-y-3 py-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="username" className="text-xs">Username</Label>
                                 <Input
                                     id="username"
                                     className="h-9 text-sm"
-                                    value={formData.username}
-                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    required
+                                    {...register("username")}
                                 />
+                                {errors.username && (
+                                    <p className="text-xs text-red-600">{errors.username.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
@@ -257,10 +274,11 @@ const UserManagement = () => {
                                     id="email"
                                     type="email"
                                     className="h-9 text-sm"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    required
+                                    {...register("email")}
                                 />
+                                {errors.email && (
+                                    <p className="text-xs text-red-600">{errors.email.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
@@ -271,31 +289,46 @@ const UserManagement = () => {
                                     id="password"
                                     type="password"
                                     className="h-9 text-sm"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    required={!editingUser}
+                                    {...register("password")}
                                 />
+                                {errors.password && (
+                                    <p className="text-xs text-red-600">{errors.password.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Roles</Label>
-                                <div className="space-y-1.5">
-                                    {roles.map(role => (
-                                        <div key={role.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`role-${role.id}`}
-                                                checked={formData.roles.includes(role.id)}
-                                                onCheckedChange={() => handleRoleToggle(role.id)}
-                                            />
-                                            <Label
-                                                htmlFor={`role-${role.id}`}
-                                                className="text-xs font-normal cursor-pointer"
-                                            >
-                                                {role.name}
-                                            </Label>
+                                <Controller
+                                    name="roles"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <div className="space-y-1.5">
+                                            {roles.map(role => (
+                                                <div key={role.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`role-${role.id}`}
+                                                        checked={field.value?.includes(role.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            const updatedRoles = checked
+                                                                ? [...(field.value || []), role.id]
+                                                                : field.value?.filter(id => id !== role.id) || [];
+                                                            field.onChange(updatedRoles);
+                                                        }}
+                                                    />
+                                                    <Label
+                                                        htmlFor={`role-${role.id}`}
+                                                        className="text-xs font-normal cursor-pointer"
+                                                    >
+                                                        {role.name}
+                                                    </Label>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+                                />
+                                {errors.roles && (
+                                    <p className="text-xs text-red-600">{errors.roles.message}</p>
+                                )}
                             </div>
                         </div>
 

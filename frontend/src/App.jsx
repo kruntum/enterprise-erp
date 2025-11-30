@@ -11,22 +11,24 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
-        <Router>
-            <Routes>
-                <Route path="/login" element={<Login />} />
+        <>
+            <Router>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
 
-                <Route element={<ProtectedRoute />}>
-                    <Route element={<Layout />}>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/users" element={<UserManagement />} />
-                        <Route path="/roles" element={<RoleManagement />} />
-                        <Route path="/menus" element={<MenuManagement />} />
-                        <Route path="/permissions" element={<PermissionManagement />} />
+                    <Route element={<ProtectedRoute />}>
+                        <Route element={<Layout />}>
+                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/users" element={<UserManagement />} />
+                            <Route path="/roles" element={<RoleManagement />} />
+                            <Route path="/menus" element={<MenuManagement />} />
+                            <Route path="/permissions" element={<PermissionManagement />} />
+                        </Route>
                     </Route>
-                </Route>
-            </Routes>
-        </Router>
+                </Routes>
+            </Router>
+        </>
     );
 }
 

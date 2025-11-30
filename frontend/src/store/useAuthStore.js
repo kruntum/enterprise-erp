@@ -35,9 +35,16 @@ const useAuthStore = create((set) => ({
         if (!user || !user.roles) return false;
 
         // Check if any role has the permission
-        return user.roles.some(role =>
-            role.permissions && role.permissions.some(p => p.name === permission)
-        );
+        return user.roles.some(role => {
+            // Handle if role is an object with permissions array
+            if (typeof role === 'object' && role.permissions) {
+                return role.permissions.some(p => {
+                    // Permission can be string or object
+                    return typeof p === 'string' ? p === permission : p.name === permission;
+                });
+            }
+            return false;
+        });
     },
 
     // Check if user has a specific role
@@ -45,7 +52,18 @@ const useAuthStore = create((set) => ({
         const { user } = useAuthStore.getState();
         if (!user || !user.roles) return false;
 
-        return user.roles.some(role => role.name === roleName);
+        // Handle both string array and object array
+        return user.roles.some(role => {
+            // If role is a string, compare directly
+            if (typeof role === 'string') {
+                return role === roleName;
+            }
+            // If role is an object, compare the name property
+            if (typeof role === 'object' && role.name) {
+                return role.name === roleName;
+            }
+            return false;
+        });
     },
 
     // Check if user has any of the specified permissions

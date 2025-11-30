@@ -21,7 +21,7 @@
 **🛠️ Technology Stack:**
 
 - **Backend:** Java 17, Spring Boot 3.2+, Spring Security, Spring Data JPA, PostgreSQL Driver, Lombok, JJWT (for JWT), SpringDoc OpenAPI (Swagger).
-- **Frontend:** React (Vite), Tailwind CSS, React Router DOM, Axios, Lucide React (icons).
+- **Frontend:** React (Vite), Tailwind CSS, shadcn/ui, React Router DOM, Axios, Lucide React (icons), Zod (validation), React Hook Form, Sonner (toast notifications).
 - **Database:** PostgreSQL 16.
 - **DevOps:** Docker, Docker Compose.
 
@@ -73,6 +73,18 @@
       - **Dashboard:** Welcome page.
       - **User Management:** A CRUD page to list users (mock or real).
     - **Routing:** Use `react-router-dom` with Protected Routes (redirect to login if not authenticated).
+    - **Form Validation:**
+      - Implement **Zod** schemas for all forms (User, Role, Permission, Menu).
+      - Use **React Hook Form** with Zod resolver for form state management.
+      - Display **inline error messages** below each field with validation errors.
+      - Centralize all schemas in `src/schemas/index.js`.
+      - Validation rules:
+        - Username: 3-50 chars, alphanumeric + underscore
+        - Email: valid email format
+        - Password: min 8 chars
+        - Role names: uppercase with underscores (ROLE_XXX)
+        - Permission names: must start with CAN\_, uppercase
+        - Menu paths: must start with /, lowercase only
 
 4.  **Configuration:**
 

@@ -10,6 +10,7 @@
 - **🛡️ Dynamic RBAC**: ระบบจัดการสิทธิ์ตามบทบาท (Role-Based Access Control) ที่ยืดหยุ่นและปรับเปลี่ยนได้
 - **📑 Dynamic Menu Management**: เมนูข้าง (Sidebar) ที่ปรับเปลี่ยนตามสิทธิ์ของผู้ใช้งานแต่ละคน
 - **👥 User Management**: ระบบบริหารจัดการผู้ใช้งาน (CRUD)
+- **✅ Form Validation**: ระบบตรวจสอบความถูกต้องของข้อมูลแบบ Real-time ด้วย Zod + React Hook Form
 - **📄 API Documentation**: เอกสาร API ครบถ้วนด้วย **Swagger UI / OpenAPI**
 - **🐳 Dockerized**: พร้อมใช้งานทันทีด้วย Docker Compose (Frontend, Backend, Database, PgAdmin)
 - **🌱 Automatic Seeding**: ระบบสร้างข้อมูลเริ่มต้นอัตโนมัติ (Roles, Users, Menus) เมื่อเริ่มระบบครั้งแรก
@@ -30,9 +31,12 @@
 ### Frontend
 
 - ⚛️ **React** (Vite)
-- 🎨 **Tailwind CSS** (หรือ CSS Modules ตามการตั้งค่า)
+- 🎨 **Tailwind CSS** + **shadcn/ui** (Component Library)
 - 🛣️ **React Router**
 - 📡 **Axios**
+- 🔍 **Zod** (Schema Validation)
+- 📝 **React Hook Form** (Form State Management)
+- 🔔 **Sonner** (Toast Notifications)
 
 ### DevOps & Tools
 
@@ -118,6 +122,39 @@ docker-compose up -d --build
 2.  กดปุ่ม **Authorize** (มุมขวาบน)
 3.  ใส่ **JWT Token** (ได้จากการ Login ผ่าน API `/api/auth/signin`)
 4.  ทดสอบยิง API ต่างๆ ได้ทันที!
+
+---
+
+---
+
+## ✅ Form Validation
+
+ระบบใช้ **Zod + React Hook Form** สำหรับการตรวจสอบความถูกต้องของข้อมูลในทุกหน้า Management:
+
+### เทคโนโลยี
+
+- **Zod**: Schema-based validation library
+- **React Hook Form**: Performant form state management
+- **@hookform/resolvers**: Integration bridge
+
+### ฟีเจอร์
+
+- ✅ **Real-time Validation**: ตรวจสอบข้อมูลทันทีขณะพิมพ์
+- ✅ **Inline Error Messages**: แสดง error ใต้ field ที่มีปัญหา
+- ✅ **Centralized Schemas**: กำหนด validation rules ในที่เดียว (`frontend/src/schemas/index.js`)
+- ✅ **Pattern Enforcement**: บังคับรูปแบบข้อมูล (เช่น Role ต้องเป็นตัวพิมพ์ใหญ่, Permission ต้องขึ้นต้นด้วย CAN\_)
+- ✅ **Consistent UX**: พฤติกรรมเหมือนกันทุกหน้า
+
+### Validation Rules
+
+| Page       | Field    | Rule                                                   |
+| ---------- | -------- | ------------------------------------------------------ |
+| User       | Username | 3-50 chars, alphanumeric + underscore                  |
+| User       | Email    | Valid email format                                     |
+| User       | Password | Min 8 characters                                       |
+| Role       | Name     | Uppercase with underscores (e.g., ROLE_ADMIN)          |
+| Permission | Name     | Must start with CAN\_, uppercase (e.g., CAN_VIEW_USER) |
+| Menu       | Path     | Must start with /, lowercase only                      |
 
 ---
 

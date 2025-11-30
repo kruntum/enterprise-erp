@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const api = axios.create({
     baseURL: '/api',
@@ -23,10 +24,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+        if (error.response) {
+            const status = error.response.status;
+
+            if (status === 401) {
+                // Unauthorized - token expired or invalid
+                toast.error('Session expired. Please login again.');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            } else if (status === 403) {
+                // Forbidden - no permission
+                toast.error('Access denied. You do not have permission to perform this action.');
+            } else if (status === 404) {
+                toast.error('Resource not found.');
+            } else if (status === 500) {
+                toast.error('Server error. Please try again later.');
+            } else if (status === 400) {
+                const message = error.response.data?.message || 'Invalid request.';
+                toast.error(message);
+            }
+        } else if (error.request) {
+            // Network error
+            toast.error('Network error. Please check your connection.');
         }
+
         return Promise.reject(error);
     }
 );
