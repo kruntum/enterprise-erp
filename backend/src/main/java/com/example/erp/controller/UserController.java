@@ -25,32 +25,32 @@ public class UserController {
     @Autowired
     PasswordEncoder encoder;
 
-    @Operation(summary = "Get all users", description = "Retrieve a list of all users. Requires CAN_VIEW_USER permission.")
+    @Operation(summary = "Get all users", description = "Retrieve a list of all users. Requires CAN_VIEW_USER permission or ADMIN role.")
     @GetMapping
-    @PreAuthorize("hasAuthority('CAN_VIEW_USER')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USER') or hasRole('ADMIN')")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    @Operation(summary = "Get user by ID", description = "Retrieve a user by their ID. Requires CAN_VIEW_USER permission.")
+    @Operation(summary = "Get user by ID", description = "Retrieve a user by their ID. Requires CAN_VIEW_USER permission or ADMIN role.")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CAN_VIEW_USER')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USER') or hasRole('ADMIN')")
     public User getUserById(@PathVariable long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    @Operation(summary = "Create user", description = "Create a new user. Requires CAN_CREATE_USER permission.")
+    @Operation(summary = "Create user", description = "Create a new user. Requires CAN_CREATE_USER permission or ADMIN role.")
     @PostMapping
-    @PreAuthorize("hasAuthority('CAN_CREATE_USER')")
+    @PreAuthorize("hasAuthority('CAN_CREATE_USER') or hasRole('ADMIN')")
     public User createUser(@RequestBody User user) {
         user.setPassword(encoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
-    @Operation(summary = "Update user", description = "Update an existing user. Requires CAN_UPDATE_USER permission.")
+    @Operation(summary = "Update user", description = "Update an existing user. Requires CAN_UPDATE_USER permission or ADMIN role.")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('CAN_UPDATE_USER')")
+    @PreAuthorize("hasAuthority('CAN_UPDATE_USER') or hasRole('ADMIN')")
     public User updateUser(@PathVariable long id, @RequestBody User userDetails) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -65,9 +65,9 @@ public class UserController {
         return userRepository.save(user);
     }
 
-    @Operation(summary = "Delete user", description = "Delete a user by ID. Requires CAN_DELETE_USER permission.")
+    @Operation(summary = "Delete user", description = "Delete a user by ID. Requires CAN_DELETE_USER permission or ADMIN role.")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('CAN_DELETE_USER')")
+    @PreAuthorize("hasAuthority('CAN_DELETE_USER') or hasRole('ADMIN')")
     public void deleteUser(@PathVariable long id) {
         userRepository.deleteById(id);
     }

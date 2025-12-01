@@ -1,6 +1,5 @@
 package com.example.erp.controller;
 
-import com.example.erp.model.Permission;
 import com.example.erp.model.Role;
 import com.example.erp.repository.PermissionRepository;
 import com.example.erp.repository.RoleRepository;
@@ -11,9 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -37,7 +34,7 @@ public class RoleController {
 
     @Operation(summary = "Get role by ID", description = "Retrieve a role by ID.")
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
     public Role getRoleById(@PathVariable long id) {
         return roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
@@ -45,7 +42,7 @@ public class RoleController {
 
     @Operation(summary = "Create role", description = "Create a new role.")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CAN_CREATE_ROLE') or hasRole('ADMIN')")
     public Role createRole(@RequestBody Role role) {
         // Ensure role name starts with ROLE_ prefix
         if (!role.getName().startsWith("ROLE_")) {
@@ -54,30 +51,27 @@ public class RoleController {
         return roleRepository.save(role);
     }
 
-    @Operation(summary = "Update role permissions", description = "Update permissions for a specific role.")
-    @PutMapping("/{id}/permissions")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Role updateRolePermissions(@PathVariable long id, @RequestBody List<Long> permissionIds) {
+    @Operation(summary = "Update role", description = "Update an existing role.")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CAN_UPDATE_ROLE') or hasRole('ADMIN')")
+    public Role updateRole(@PathVariable long id, @RequestBody Role roleDetails) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        Set<Permission> permissions = new HashSet<>();
-        for (Long permissionId : permissionIds) {
-            if (permissionId == null) {
-                continue;
-            }
-            Permission permission = permissionRepository.findById(permissionId)
-                    .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId));
-            permissions.add(permission);
+        String newName = roleDetails.getName();
+        if (!newName.startsWith("ROLE_")) {
+            newName = "ROLE_" + newName;
         }
+        role.setName(newName);
+        role.setDescription(roleDetails.getDescription());
+        role.setPermissions(roleDetails.getPermissions());
 
-        role.setPermissions(permissions);
         return roleRepository.save(role);
     }
 
     @Operation(summary = "Delete role", description = "Delete a role by ID.")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CAN_DELETE_ROLE') or hasRole('ADMIN')")
     public void deleteRole(@PathVariable long id) {
         roleRepository.deleteById(id);
     }

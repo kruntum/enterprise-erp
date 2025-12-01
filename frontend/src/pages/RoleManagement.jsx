@@ -134,6 +134,7 @@ const RoleManagement = () => {
             fetchRoles();
             handleCloseModal();
         } catch (err) {
+            console.error(err);
             toast.error(editingRole ? "Failed to update role" : "Failed to create role");
         }
     };

@@ -1,6 +1,8 @@
 package com.example.erp.config;
 
+import com.example.erp.security.AuthAccessDeniedHandler;
 import com.example.erp.security.AuthEntryPointJwt;
+
 import com.example.erp.security.AuthTokenFilter;
 import com.example.erp.security.CustomPermissionEvaluator;
 import com.example.erp.service.UserDetailsServiceImpl;
@@ -31,6 +33,9 @@ public class WebSecurityConfig {
 
     @Autowired
     private CustomPermissionEvaluator customPermissionEvaluator;
+
+    @Autowired
+    private AuthAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -67,7 +72,9 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()

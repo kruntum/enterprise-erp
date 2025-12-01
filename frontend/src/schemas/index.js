@@ -25,7 +25,7 @@ export const roleSchema = z.object({
     name: z.string()
         .min(1, 'Role name is required')
         .max(100, 'Role name must not exceed 100 characters')
-        .regex(/^[A-Z_]+$/, 'Role name should be uppercase with underscores (e.g., ROLE_ADMIN)'),
+        .regex(/^[A-Z_]+$/, 'Role name should be uppercase with underscores (e.g., ADMIN)'),
 
     description: z.string()
         .max(255, 'Description must not exceed 255 characters')

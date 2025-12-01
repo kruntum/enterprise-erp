@@ -8,11 +8,17 @@ const api = axios.create({
     },
 });
 
+import useAuthStore from '../store/useAuthStore';
+
 api.interceptors.request.use(
     (config) => {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user && user.token) {
-            config.headers['Authorization'] = 'Bearer ' + user.token;
+        // Read from Zustand persist storage
+        const storage = localStorage.getItem('auth-storage');
+        if (storage) {
+            const { state } = JSON.parse(storage);
+            if (state?.user?.token) {
+                config.headers['Authorization'] = 'Bearer ' + state.user.token;
+            }
         }
         return config;
     },
@@ -26,12 +32,19 @@ api.interceptors.response.use(
     (error) => {
         if (error.response) {
             const status = error.response.status;
-
+            console.log(error);
             if (status === 401) {
                 // Unauthorized - token expired or invalid
-                toast.error('Session expired. Please login again.');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                // Only redirect if we are not already on the login page
+                if (window.location.pathname !== '/login') {
+                    toast.error('Session expired. Please login again.');
+                    // Use the store's logout action to clean up state
+                    useAuthStore.getState().logout();
+                    // Optional: Add a small delay or check if it's a soft 401
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                }
             } else if (status === 403) {
                 // Forbidden - no permission
                 toast.error('Access denied. You do not have permission to perform this action.');
@@ -45,6 +58,8 @@ api.interceptors.response.use(
             }
         } else if (error.request) {
             // Network error
+            console.error('Network Error:', error);
+            // Don't logout on network error, just show toast
             toast.error('Network error. Please check your connection.');
         }
 
