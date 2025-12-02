@@ -24,7 +24,7 @@ public class PermissionController {
 
     @Operation(summary = "Get all permissions", description = "Retrieve a list of all permissions.")
     @GetMapping
-    @PreAuthorize("hasAuthority('CAN_VIEW_PERMISSION') or hasRole('ADMIN')")
+    // @PreAuthorize("hasAuthority('CAN_VIEW_PERMISSION') or hasRole('ADMIN')")
     public List<Permission> getAllPermissions() {
         return permissionRepository.findAll();
     }

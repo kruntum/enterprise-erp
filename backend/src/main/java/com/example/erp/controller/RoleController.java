@@ -27,14 +27,14 @@ public class RoleController {
 
     @Operation(summary = "Get all roles", description = "Retrieve a list of all roles. Requires CAN_VIEW_ROLE permission or ADMIN role.")
     @GetMapping
-    @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
+    // @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
     public List<Role> getAllRoles() {
         return roleRepository.findAll();
     }
 
     @Operation(summary = "Get role by ID", description = "Retrieve a role by ID.")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
+    // @PreAuthorize("hasAuthority('CAN_VIEW_ROLE') or hasRole('ADMIN')")
     public Role getRoleById(@PathVariable long id) {
         return roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
